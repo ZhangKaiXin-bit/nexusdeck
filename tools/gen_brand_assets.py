@@ -56,6 +56,7 @@ def main() -> None:
     iconutil = shutil.which("iconutil")
     if not iconutil:
         raise SystemExit("找不到 macOS iconutil，无法生成 AppIcon.icns")
+    ICNS.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="console-brand-") as tmp:
         iconset = Path(tmp) / "AppIcon.iconset"
         iconset.mkdir()
