@@ -134,7 +134,7 @@ jobs:
             - macOS 首次打开若提示已损坏，执行：
               `xattr -dr com.apple.quarantine /Applications/NexusDeck.app`
           files: |
-            release/NexusDeck-macos.zip
+            release/NexusDeck-macos.dmg
             release/NexusDeck.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
