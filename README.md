@@ -36,7 +36,7 @@
 
 | 平台 | 文件 | 使用 |
 | --- | --- | --- |
-| macOS 12+ | `NexusDeck-macos.zip` | 解压得到 `NexusDeck.app`，拖入 `应用程序` 或双击运行 |
+| macOS 12+ | `NexusDeck-macos.dmg` | 双击挂载，将 `NexusDeck.app` 拖入「应用程序」或双击运行 |
 | Windows 10/11 | `NexusDeck.exe` | 双击运行，数据存于 `%LOCALAPPDATA%\枢纽台` |
 
 - macOS 首次打开若提示「已损坏」，右键 → 打开（点「打开」），或执行一次：
@@ -59,8 +59,10 @@
 
 ```bash
 python3 -m pip install pyinstaller
-# macOS：产出 NexusDeck.app
+# macOS：产出 NexusDeck.app，再打成 DMG
 pyinstaller build.spec --noconfirm --clean
+mkdir -p dmg-stage && cp -R dist/NexusDeck.app dmg-stage/ && ln -s /Applications dmg-stage/Applications
+hdiutil create -volname "NexusDeck" -srcfolder dmg-stage -ov -format UDZO dist/NexusDeck-macos.dmg
 # Windows：产出 NexusDeck.exe
 pyinstaller --onefile --windowed --name NexusDeck --add-data "static;static" --add-data "VERSION;." server.py
 ```
