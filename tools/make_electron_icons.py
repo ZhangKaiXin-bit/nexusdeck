@@ -8,7 +8,9 @@ from pathlib import Path
 from PIL import Image
 
 ROOT = Path("/Users/zhangwentao/WorkBuddy/2026-08-23-18-03-16/nexusdeck")
-SRC = ROOT / "static/assets/console-app-icon.png"
+# 优先用方案 E 的 1024 主图（最高清），回退到仓库 512 图
+SRC_1024 = Path.home() / "Desktop/NexusDeck-icons/source-1024.png"
+SRC = SRC_1024 if SRC_1024.exists() else ROOT / "static/assets/console-app-icon.png"
 ASSETS = ROOT / "electron/assets"
 ASSETS.mkdir(parents=True, exist_ok=True)
 
