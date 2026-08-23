@@ -1,0 +1,64 @@
+{
+  "name": "nexusdeck",
+  "version": "1.1.0",
+  "description": "NexusDeck 桌面应用（Electron 封装，内嵌 Python 服务监控后端，macOS + Windows 双平台）",
+  "main": "main.js",
+  "author": "ZhangKaiXin-bit",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "electron . --enable-logging",
+    "dist:mac": "electron-builder --mac",
+    "dist:win": "electron-builder --win",
+    "dist": "electron-builder --mac"
+  },
+  "build": {
+    "appId": "com.nexusdeck.desktop",
+    "productName": "NexusDeck",
+    "copyright": "Copyright © 2026 ZhangKaiXin-bit",
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "bin",
+        "to": "bin"
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "icon": "assets/icon.icns",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": "arm64"
+        }
+      ],
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false
+    },
+    "win": {
+      "icon": "assets/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": "x64"
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  }
+}

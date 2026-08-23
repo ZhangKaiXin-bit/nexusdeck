@@ -31,3 +31,13 @@ release/
 *.zip
 *.tar.gz
 *.sha256
+
+# Electron (桌面封装)
+electron/node_modules/
+electron/dist/
+electron/build_server/
+electron/bin/
+*.dmg
+
+# 历史遗留的 PyInstaller 中间产物 app 壳（非发布物）
+枢纽台.app/
