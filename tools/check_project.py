@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""总控台统一项目检查。
+"""枢纽台统一项目检查。
 
 默认执行语法、结构、生成文件和测试检查。本脚本不修改项目文件；
 --release 额外检查 Git 发布边界，但不代替 RELEASE_CHECKLIST.md 的人工验收。
@@ -22,7 +22,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 STATIC = ROOT / "static"
-INFO_PLIST = ROOT / "总控台.app" / "Contents" / "Info.plist"
+INFO_PLIST = ROOT / "枢纽台.app" / "Contents" / "Info.plist"
 SEMVER_RE = re.compile(
     r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)"
     r"(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?"
@@ -117,8 +117,8 @@ def check_required_files() -> str:
         "docs/screenshots/ops-services.jpg",
         "static/index.html",
         "static/app.js",
-        "总控台.app/Contents/Info.plist",
-        "总控台.app/Contents/MacOS/launcher",
+        "枢纽台.app/Contents/Info.plist",
+        "枢纽台.app/Contents/MacOS/launcher",
     )
     missing = [name for name in required if not (ROOT / name).is_file()]
     require(not missing, "缺少必要文件: " + ", ".join(missing))
@@ -135,7 +135,7 @@ def check_asset_provenance() -> str:
         for item in sorted(folder.rglob("*"))
         if item.is_file()
     ]
-    tracked.append(ROOT / "总控台.app" / "Contents" / "Resources" / "AppIcon.icns")
+    tracked.append(ROOT / "枢纽台.app" / "Contents" / "Resources" / "AppIcon.icns")
     missing = [
         item.relative_to(ROOT).as_posix()
         for item in tracked
@@ -394,7 +394,7 @@ def check_javascript_bindings() -> str:
 def check_shell_and_plist() -> str:
     shell_files = (
         ROOT / "start.command",
-        ROOT / "总控台.app" / "Contents" / "MacOS" / "launcher",
+        ROOT / "枢纽台.app" / "Contents" / "MacOS" / "launcher",
     )
     for path in shell_files:
         command_output(["/bin/bash", "-n", str(path)])
@@ -596,7 +596,7 @@ def check_release_git() -> str:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="检查总控台项目")
+    parser = argparse.ArgumentParser(description="检查枢纽台项目")
     parser.add_argument("--skip-tests", action="store_true", help="只检查语法/结构，不运行测试")
     parser.add_argument("--release", action="store_true", help="额外检查 Git 发布边界")
     return parser.parse_args()

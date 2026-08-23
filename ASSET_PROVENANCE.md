@@ -60,7 +60,7 @@
   - `static/assets/favicon-32.png`：`6c1c34a718d9f26737fc1edc2a1a1fd3838e66826e0a19284e116449f031abbb`
   - `static/assets/favicon.ico`：`71b9aa89ea479762f7ed7c54a665c88ef7786089523417119292d446ea12648d`
   - `static/assets/apple-touch-icon.png`：`1108214aa511f206409c2daf7a3f7ac318dd4d2554a95476f2f606bfe8b49621`
-  - `总控台.app/Contents/Resources/AppIcon.icns`：`3ed34bba75ec6a2440d44d9c254ee079ac72b7f2bbc1605a873472131cf56568`
+  - `枢纽台.app/Contents/Resources/AppIcon.icns`：`3ed34bba75ec6a2440d44d9c254ee079ac72b7f2bbc1605a873472131cf56568`
 - 用途：macOS App Icon、浏览器 favicon、Apple Touch Icon 与网页顶栏品牌标识
 - 设计：琥珀色“长期服务”轨道与紫色“批处理任务”轨道汇聚到青柠色状态节点，呼应产品的两类本地操作与统一监测
 - 来源：由项目维护者在用户明确选定第三套方向后，于 2026-07-23 在 Codex 中使用 OpenAI Image Generation `image_gen` 工具生成；工具没有向本次会话暴露底层模型版本

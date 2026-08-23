@@ -114,8 +114,8 @@ class ReleaseFixtureTests(unittest.TestCase):
         self.assertEqual(stat.S_IMODE(second.stat().st_mode), 0o644)
         with zipfile.ZipFile(second) as archive:
             infos = {info.filename: info for info in archive.infolist()}
-        regular_info = infos["总控台-1.2.3/server.py"]
-        executable_info = infos["总控台-1.2.3/start.command"]
+        regular_info = infos["枢纽台-1.2.3/server.py"]
+        executable_info = infos["枢纽台-1.2.3/start.command"]
         self.assertEqual(regular_info.compress_type, zipfile.ZIP_STORED)
         self.assertEqual(regular_info.date_time, (2024, 1, 1, 0, 0, 0))
         self.assertEqual(

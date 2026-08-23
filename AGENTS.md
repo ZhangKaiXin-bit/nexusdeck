@@ -1,6 +1,6 @@
-# 总控台 (Console)
+# 枢纽台 (Console)
 
-本地服务监控与快速启动控制台。**零依赖**：Python 3 标准库后端（单文件）+ 无构建原生前端。推荐双击 `总控台.app` 后台运行（不显示 Terminal/Dock）；`start.command` 保留为终端调试入口。
+本地服务监控与快速启动控制台。**零依赖**：Python 3 标准库后端（单文件）+ 无构建原生前端。推荐双击 `枢纽台.app` 后台运行（不显示 Terminal/Dock）；`start.command` 保留为终端调试入口。
 
 ## 结构
 
@@ -10,15 +10,15 @@
 - `static/themes/` — **单一主题**：当前仅内置 `ops`（指挥台，`DEFAULT_UI_THEME` 常量指定并在清单中固定排首位）。`{id}.css` 整包样式 + `{id}.json` 清单（`id/name/author/desc/colors[]`）的注册机制保留：`GET /api/state` 返回 `themes` 与 `uiTheme`；`POST /api/ui/theme {theme}` 校验 id 后落盘。产品不提供主题选择界面（已随多主题一并移除），深浅色切换仍保留。
 - `static/fonts/GeistMono-Variable.woff2` — vendored 数据/代码字体；中文与正文使用 macOS 系统字体栈；`static/icons/*.svg` — Lucide 图标源文件（vendored）；`tools/gen_icons.py` — 由 svg 重新生成 `icons.js`（勿手改 icons.js）
 - `static/assets/` — 品牌素材：`console-app-icon.png` 为 App Icon 主图，`brand-mark.png` 为顶栏标识；`favicon-32.png` / `favicon.ico` / `apple-touch-icon.png` 与 `.app` 内 `AppIcon.icns` 由 `tools/gen_brand_assets.py` 生成
-- `~/Library/Application Support/总控台/config.json` — 用户配置；`icons/` 为应用图标。目录/ 文件权限分别为 0700/0600
-- `~/Library/Logs/总控台/{appId}.log` — 应用启动日志；`console.log` 为 `.app` 启动日志
+- `~/Library/Application Support/枢纽台/config.json` — 用户配置；`icons/` 为应用图标。目录/ 文件权限分别为 0700/0600
+- `~/Library/Logs/枢纽台/{appId}.log` — 应用启动日志；`console.log` 为 `.app` 启动日志
 - `data/` — 旧版项目内数据，仅在新目标不存在的首次启动中复制迁移；保留不删除
 - `start.command` — macOS 双击启动脚本（chmod +x）
-- `总控台.app` — macOS 无终端窗口启动器（`LSUIElement` 后台应用；内部直接启动 `server.py`，输出写入 `~/Library/Logs/总控台/console.log`）
+- `枢纽台.app` — macOS 无终端窗口启动器（`LSUIElement` 后台应用；内部直接启动 `server.py`，输出写入 `~/Library/Logs/枢纽台/console.log`）
 
 ## 运行
 
-`python3 server.py` → 绑定 `127.0.0.1`，端口从 **9600** 起尝试，被占则 +1（最多 10 个）。启动后自动打开浏览器。`/favicon.ico` 返回统一品牌图标。双击 `总控台.app` 会先识别同目录的现有总控台，可直接打开或安全重启，不需要用户输入命令，也不会出现 Terminal 窗口。
+`python3 server.py` → 绑定 `127.0.0.1`，端口从 **9600** 起尝试，被占则 +1（最多 10 个）。启动后自动打开浏览器。`/favicon.ico` 返回统一品牌图标。双击 `枢纽台.app` 会先识别同目录的现有枢纽台，可直接打开或安全重启，不需要用户输入命令，也不会出现 Terminal 窗口。
 
 ## API 契约（全部 JSON；icon 上传为原始字节）
 
@@ -50,14 +50,14 @@
     "portOwner": null, "portConflict": false, "portConflictApps": []
   }],
   "watchedKeywords": ["ffmpeg"],
-  "consolePort": 9600, "consolePid": 123, "consoleCwd": "/path/to/总控台",
+  "consolePort": 9600, "consolePid": 123, "consoleCwd": "/path/to/枢纽台",
   "version": "1.0.0", "schemaVersion": 1,
   "degraded": false, "degradedReasons": []
 }
 ```
 - `GET /api/health` — 不运行 `ps/lsof` 的轻量健康检查，返回 `status/version/schemaVersion/degraded/issues/config`
 - `group`: `"mine"` | `"background"`；`icon`/`emoji`/`port`/`cwd`/`project`/`appId`/`appName`/`lastExit` 可为 `null`
-- `lastExit`：最近一次退出结果。任务状态为 `succeeded`（exit 0）/`canceled`（脚本主动 exit 130）/`failed`（其他自然退出）/`stopped`（总控台中止，code=null）；旧数据可能只有 `code/at`，API 输出时会兼容推导但不改写磁盘。批处理启动时保留上一次完成历史，自然退出或中止后覆盖
+- `lastExit`：最近一次退出结果。任务状态为 `succeeded`（exit 0）/`canceled`（脚本主动 exit 130）/`failed`（其他自然退出）/`stopped`（枢纽台中止，code=null）；旧数据可能只有 `code/at`，API 输出时会兼容推导但不改写磁盘。批处理启动时保留上一次完成历史，自然退出或中止后覆盖
 - `health`：每次状态读取时只读检查配置，返回 `status: ok|error|unknown`、`blocking` 与 `issues[{kind,severity,title,detail,fix,action}]`。明确缺失的 cwd、脚本或运行时会阻止启动；复杂 Shell 命令无法静态判断时为 unknown，不阻止运行
 - `kind`：`"service"`（长期服务，有端口语义）| `"task"`（批处理任务，强制 port=null，主按钮为「运行」）；旧数据缺省视为 `service`。启动台按 kind 分两个区渲染
 - `running`：仅表示存在通过本次启动 token、进程组与当前用户三重校验的受控进程；不再以“配置端口有任意监听者”作为运行依据
@@ -66,7 +66,7 @@
 - `listening`：受控进程是否正在监听配置端口；`portOccupied`：该端口当前被不属于本卡片的进程占用；多张卡片允许保存同一个常见开发端口，`portConflict/portConflictApps` 仅为旧前端兼容字段并固定返回 `false/[]`；`legacyManaged`：是否通过旧版 PID+端口+UID+cwd 兼容身份识别
 - `project`：cwd 最后一段目录名（用于区分同名进程）；`appId`/`appName`：该端口命中启动台应用时的关联信息
 - 排除控制台自身进程；只返回当前用户的进程
-- **进程溯源**：`origin` 沿 PPID 链（≤12 层）识别启动者——跳过壳/包管理器/运行时包装层与 launchd，优先匹配已知 AI 编程助手（codex/claude/kimi/gemini/aider/opencode 等）、`.app` 包（VS Code/Cursor/iTerm/Warp 等）、tmux/screen 与总控台 run-token 标记（「总控台」）；未识别的中间层先记为候选、有更优答案即覆盖，全部落空才以最近未识别进程命名；`label` 为展示名、`icon` 取 bot/code/terminal/package/rocket/server，仅用于展示，不影响启停判定
+- **进程溯源**：`origin` 沿 PPID 链（≤12 层）识别启动者——跳过壳/包管理器/运行时包装层与 launchd，优先匹配已知 AI 编程助手（codex/claude/kimi/gemini/aider/opencode 等）、`.app` 包（VS Code/Cursor/iTerm/Warp 等）、tmux/screen 与枢纽台 run-token 标记（「枢纽台」）；未识别的中间层先记为候选、有更优答案即覆盖，全部落空才以最近未识别进程命名；`label` 为展示名、`icon` 取 bot/code/terminal/package/rocket/server，仅用于展示，不影响启停判定
 
 ### 服务操作
 - `POST /api/kill` `{pid, force?}` → `{ok}` / `{ok:false, error}`（force 用 SIGKILL；校验属当前用户）
@@ -90,9 +90,9 @@
 - `DELETE /api/apps/{id}/icon` → `{ok}`
 - `GET /api/apps/{id}/logs?tail=300` → `{text}`
 
-### 总控台自身
-- `POST /api/console/restart` → `{ok, pid, helperPid, port}`（先返回响应，再由独立 helper 等待旧进程退出并优先复用原端口；启动台应用不随总控台停止）
-- `POST /api/console/stop` → `{ok, pid, port}`（响应发出后关闭总控台 HTTP 服务；启动台中已经运行的独立进程组保持运行）
+### 枢纽台自身
+- `POST /api/console/restart` → `{ok, pid, helperPid, port}`（先返回响应，再由独立 helper 等待旧进程退出并优先复用原端口；启动台应用不随枢纽台停止）
+- `POST /api/console/stop` → `{ok, pid, port}`（响应发出后关闭枢纽台 HTTP 服务；启动台中已经运行的独立进程组保持运行）
 - `POST /api/ui/theme` `{theme}` → `{ok, theme}` / `{ok:false, error}`（校验主题 id 存在后写入 `config.json` 的 `uiTheme`；主题清单由 `/api/state` 的 `themes` 字段返回）
 
 ### 静态
@@ -107,14 +107,14 @@
 - **分组逻辑**（按优先级）：用户 `promoted` → `mine`；进程名含开发关键词（python node ollama docker 等，见 `DEV_KEYWORDS`，只匹配 name 不匹配 args，避免 VS Code `--ms-enable-electron-run-as-node` 这类误伤）→ `mine`（覆盖下方规则，Ollama/Docker 这类在 .app 内的守护进程仍算服务）；可执行路径含 `.app/Contents/`（GUI 应用及其 helper）→ `background`；comm 以系统路径开头（`/usr/libexec/`、`/usr/sbin/`、`/sbin/`、`/System/`、`/usr/lib/`）→ `background`；comm 或 cwd 含 `/Library/Containers/`（沙盒应用）→ `background`；其余默认 `mine`。`hidden` 仅是标记，照常返回。
 - **关注进程**：`ps -axo pid=,uid=,comm=,args=,etime=,%cpu=,%mem=`，args 小写包含关键字即命中，只保留当前用户并排除自身及 ps/lsof。
 - **应用状态**：每次启动生成随机 `runToken`，常驻外层 shell 在 argv 中持有标记并等待内层命令及其后台作业。新版进程只有同时命中 `lastPgid` / 当前 UID / token 的进程组才算 running；升级前缺少 token 的旧进程，只有配置 `lastPid`、监听端口、当前 UID 与真实 cwd 全部一致时才兼容认领。用户明确从服务监控认领的 `attached` 卡片允许监听子进程换 PID，但必须在配置端口上按当前 UID + 真实 cwd 唯一命中；任一条件不符仍按外部端口占用处理。`ports` 来自受控进程组成员实际监听的端口。
-- **应用启停**：多张卡片可保存相同端口（例如多个默认使用 3000 的项目）；启动前只拒绝失效配置和当时真实被占用的端口。重启先做健康预检，失败时不会先停掉仍工作的旧服务。停止时先校验 token，然后只对该受控进程组发 `SIGTERM`，**绝不按端口杀其他监听者**。服务手动 stop 不记录退出历史；任务自然结束记录四态结果，总控台中止记录 `stopped`。批处理不做“长期服务存活探测”，避免把快速成功误判成失败
-- **任务取消协议**：一次性任务内部的“用户主动取消”以退出码 **130** 通知总控台；0 表示成功，其余表示失败。不要通过日志文字猜测状态
+- **应用启停**：多张卡片可保存相同端口（例如多个默认使用 3000 的项目）；启动前只拒绝失效配置和当时真实被占用的端口。重启先做健康预检，失败时不会先停掉仍工作的旧服务。停止时先校验 token，然后只对该受控进程组发 `SIGTERM`，**绝不按端口杀其他监听者**。服务手动 stop 不记录退出历史；任务自然结束记录四态结果，枢纽台中止记录 `stopped`。批处理不做“长期服务存活探测”，避免把快速成功误判成失败
+- **任务取消协议**：一次性任务内部的“用户主动取消”以退出码 **130** 通知枢纽台；0 表示成功，其余表示失败。不要通过日志文字猜测状态
 - **配置健康**：`inspect_app_health` 只解析确定无歧义的简单命令并执行 stat/权限/PATH 检查，不执行命令、不展开变量/通配符。相对脚本按配置 cwd（空值时用户主目录）解析；复杂或动态命令返回 unknown
 - **运行中编辑**：编辑面板打开时立即显示“停止服务”。点击只调用 stop，面板保持打开且当前草稿不变；停止成功后用户继续编辑并普通保存。名称/图标仍可在运行中直接保存。`stopBeforeUpdate:true` 保留为 API 客户端的原子停止更新能力，但不是默认前端流程。
 - **无终端 PATH**：Finder/`LSUIElement` 启动不会读取 shell 配置；子应用启动环境需显式补入 `~/.local/bin`、Volta/Bun/pnpm、NVM/fnm、Homebrew 与系统 bin 目录，保证 `node`/`npm`/`pnpm` 等可用。启动 API 短暂探测立即退出，并把日志末行作为明确错误返回。
 - **日志**：单文件超过 10MB 时 copy-truncate，保留 3 份轮转备份；日志 API 从文件尾部分块读取，不将整个日志读入内存。
 - **keep-alive 陷阱**：POST start/stop 前端会带 `{}` body，handler 必须 `discard_body()` 读掉——否则残留字节污染同一 keep-alive 连接的下一个请求（method 解析成 `{}GET` → 501，前端显示断连横幅）。新增不读 body 的 POST 路由时同样处理。
-- **运行目录**：默认配置/图标位于 `~/Library/Application Support/总控台`，日志位于 `~/Library/Logs/总控台`；`CONSOLE_DATA_DIR` / `CONSOLE_LOG_DIR` 可显式覆盖，覆盖时对应目录不自动迁移旧 `data/`。
+- **运行目录**：默认配置/图标位于 `~/Library/Application Support/枢纽台`，日志位于 `~/Library/Logs/枢纽台`；`CONSOLE_DATA_DIR` / `CONSOLE_LOG_DIR` 可显式覆盖，覆盖时对应目录不自动迁移旧 `data/`。
 - **配置**：读写加线程锁；写入用临时文件 + `os.replace` 防损坏；`schemaVersion` 逐版显式迁移；`.bak` 保留上一份良好版本。主配置与备份均不可读时进入只读保护，不覆盖原文件。
 - **项目识别**：仅读取项目根目录下不超过 2MB 的已知配置/入口文件，不安装依赖、不执行配置、不扫描整个目录；显式 CLI 端口优先于框架默认端口。
 - **kill 安全**：只允许结束当前用户的进程。

@@ -1,6 +1,6 @@
 'use strict';
 /* ============================================================
-   app.js — 入口：视图切换 / 轮询 / 命令面板 / 总控台自身
+   app.js — 入口：视图切换 / 轮询 / 命令面板 / 枢纽台自身
    ============================================================ */
 import { $, el, setText, setChildren, icon, escapeHtml,
   post, act, toast, state, DISCONNECTED_TEXT, notifyTaskCompletions,
@@ -154,7 +154,7 @@ function poll(force = false) {
         restartDeadlineTimer = null;
         state.restartingFrom = null;
         setConnected(true);
-        toast('总控台已重新启动');
+        toast('枢纽台已重新启动');
       } else if (!state.restartingFrom && !state.stopping) {
         setConnected(true);
       }
@@ -166,7 +166,7 @@ function poll(force = false) {
       /* 页面进入后台时主动取消请求，不把它误报成断连。 */
       if (!document.hidden || timedOut) {
         const denied = e.status === 401 || e.status === 403;
-        setConnected(false, denied ? '控制台拒绝了当前页面的访问，请重新打开总控台。' : '');
+        setConnected(false, denied ? '控制台拒绝了当前页面的访问，请重新打开枢纽台。' : '');
       }
     } finally {
       clearTimeout(timeout);
@@ -254,9 +254,9 @@ function render() {
   stopConsoleBtn.disabled = !!state.restartingFrom || state.stopping;
   restartConsoleBtn.classList.toggle('needs-activation', !restartSupported);
   restartConsoleBtn.classList.toggle('restarting', !!state.restartingFrom);
-  restartConsoleBtn.setAttribute('aria-label', restartSupported ? '重启总控台' : '启用一键重启');
+  restartConsoleBtn.setAttribute('aria-label', restartSupported ? '重启枢纽台' : '启用一键重启');
   restartConsoleBtn.title = restartSupported
-    ? '重启总控台 · PID ' + consolePid +
+    ? '重启枢纽台 · PID ' + consolePid +
       (state.data.consoleCwd ? ' · ' + state.data.consoleCwd : '')
     : '当前是旧版后台，点击查看启用方法';
   /* 侧栏计数：启动台 = 运行中应用数；服务监控 = 我的服务数 */
@@ -278,9 +278,9 @@ function render() {
 function showConsoleActivationInfo(action) {
   openConfirm({
     title: '先启用后台控制',
-    bodyHtml: '当前 <b>' + escapeHtml(consolePortLabel.textContent || '总控台') +
+    bodyHtml: '当前 <b>' + escapeHtml(consolePortLabel.textContent || '枢纽台') +
       '</b> 是修改前启动的旧后台，所以页面还不能直接' + escapeHtml(action) + '。' +
-      '<div class="confirm-detail">请双击项目里的 <b>总控台.app</b>，在弹窗中选择“重新启动”。只需做这一次；以后就能直接在页面里重启或停止。</div>',
+      '<div class="confirm-detail">请双击项目里的 <b>枢纽台.app</b>，在弹窗中选择“重新启动”。只需做这一次；以后就能直接在页面里重启或停止。</div>',
     okText: '知道了',
     tone: 'primary',
     onOk: () => {},
@@ -295,15 +295,15 @@ restartConsoleBtn.addEventListener('click', () => {
     return;
   }
   openConfirm({
-    title: '重启总控台',
-    bodyHtml: '确定要重启总控台吗？' +
+    title: '重启枢纽台',
+    bodyHtml: '确定要重启枢纽台吗？' +
       '<div class="confirm-detail">页面会自动重连；启动台里正在运行的应用不会停止。</div>',
     okText: '重新启动',
     tone: 'primary',
     onOk: async () => {
       suspendPortDiscovery();
       state.restartingFrom = consolePid;
-      banner.textContent = '总控台正在重新启动，页面会自动恢复…';
+      banner.textContent = '枢纽台正在重新启动，页面会自动恢复…';
       banner.classList.add('show');
       banner.setAttribute('aria-hidden', 'false');
       render();
@@ -320,7 +320,7 @@ restartConsoleBtn.addEventListener('click', () => {
       restartDeadlineTimer = setTimeout(() => {
         if (!state.restartingFrom) return;
         state.restartingFrom = null;
-        setConnected(false, '总控台重启超时，请双击“总控台.app”重新打开。');
+        setConnected(false, '枢纽台重启超时，请双击“枢纽台.app”重新打开。');
         render();
       }, 25000);
     },
@@ -335,13 +335,13 @@ stopConsoleBtn.addEventListener('click', () => {
     return;
   }
   openConfirm({
-    title: '停止总控台',
-    bodyHtml: '确定要停止总控台吗？' +
-      '<div class="confirm-detail">当前页面会断开；启动台里已经运行的应用不会被停止。再次使用时，双击“总控台.app”即可。</div>',
+    title: '停止枢纽台',
+    bodyHtml: '确定要停止枢纽台吗？' +
+      '<div class="confirm-detail">当前页面会断开；启动台里已经运行的应用不会被停止。再次使用时，双击“枢纽台.app”即可。</div>',
     okText: '停止运行',
     onOk: async () => {
       state.stopping = true;
-      banner.textContent = '总控台正在停止…再次启动请双击“总控台.app”。';
+      banner.textContent = '枢纽台正在停止…再次启动请双击“枢纽台.app”。';
       banner.classList.add('show');
       banner.setAttribute('aria-hidden', 'false');
       render();
@@ -352,7 +352,7 @@ stopConsoleBtn.addEventListener('click', () => {
         render();
         return;
       }
-      banner.textContent = '总控台已停止。再次启动请双击“总控台.app”。';
+      banner.textContent = '枢纽台已停止。再次启动请双击“枢纽台.app”。';
     },
   });
 });
@@ -454,7 +454,7 @@ function paletteActions() {
   });
   items.push({
     icon: 'terminal',
-    title: '总控台日志',
+    title: '枢纽台日志',
     hint: '系统 · data/logs/console.log',
     run: openConsoleLog,
   });

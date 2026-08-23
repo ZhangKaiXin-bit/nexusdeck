@@ -146,7 +146,7 @@ async function req(method, path, body) {
     if (r.status === 204) { mutationEpoch += 1; return { ok: true }; }
     const type = r.headers.get('content-type') || '';
     const fallbackError = r.status === 401 || r.status === 403
-      ? '访问被拒绝，请从总控台页面重试'
+      ? '访问被拒绝，请从枢纽台页面重试'
       : 'HTTP ' + r.status;
     const data = type.includes('application/json')
       ? await r.json()

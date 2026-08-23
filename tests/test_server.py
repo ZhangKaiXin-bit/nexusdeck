@@ -45,7 +45,7 @@ node 303 user 3u IPv6 0x0 0t0 TCP *:3000 (LISTEN)
 
 
 class OriginAttributionTests(unittest.TestCase):
-    """attribute_origin：沿 PPID 链识别 AI 助手 / 编辑器 / 终端 / 总控台。"""
+    """attribute_origin：沿 PPID 链识别 AI 助手 / 编辑器 / 终端 / 枢纽台。"""
 
     @staticmethod
     def table(*rows):
@@ -86,7 +86,7 @@ class OriginAttributionTests(unittest.TestCase):
             (90, 1, "/bin/bash -c outer console-run:tok123 inner"),
         )
         origin = server.attribute_origin(100, table)
-        self.assertEqual(origin, {"label": "总控台", "icon": "rocket"})
+        self.assertEqual(origin, {"label": "枢纽台", "icon": "rocket"})
 
     def test_unknown_middle_process_is_named_honestly(self):
         table = self.table(
@@ -459,8 +459,8 @@ class RuntimeStorageTests(unittest.TestCase):
     def test_first_run_copies_legacy_data_privately_without_deleting_source(self):
         with tempfile.TemporaryDirectory() as td:
             legacy = os.path.join(td, "project-data")
-            target = os.path.join(td, "Application Support", "总控台")
-            logs = os.path.join(td, "Logs", "总控台")
+            target = os.path.join(td, "Application Support", "枢纽台")
+            logs = os.path.join(td, "Logs", "枢纽台")
             os.makedirs(os.path.join(legacy, "icons"))
             os.makedirs(os.path.join(legacy, "logs"))
             with open(os.path.join(legacy, "config.json"), "w",
@@ -535,7 +535,7 @@ class RuntimeStorageTests(unittest.TestCase):
             self.assertTrue(os.path.isdir(logs))
             # 显式 override 只准备私有目录，不复制项目内旧配置。
             self.assertFalse(os.path.exists(os.path.join(target, "config.json")))
-            self.assertNotIn("总控台已启动", result.stdout + result.stderr)
+            self.assertNotIn("枢纽台已启动", result.stdout + result.stderr)
 
     def test_prepare_storage_cli_fails_nonzero_when_directory_is_invalid(self):
         with tempfile.TemporaryDirectory() as td:
@@ -549,7 +549,7 @@ class RuntimeStorageTests(unittest.TestCase):
                 [sys.executable, server.__file__, "--prepare-storage"],
                 cwd=td, env=env, capture_output=True, text=True, timeout=5)
             self.assertNotEqual(result.returncode, 0)
-            self.assertNotIn("总控台已启动", result.stdout + result.stderr)
+            self.assertNotIn("枢纽台已启动", result.stdout + result.stderr)
 
     def test_app_launcher_redirects_output_only_after_storage_is_ready(self):
         with tempfile.TemporaryDirectory() as td:

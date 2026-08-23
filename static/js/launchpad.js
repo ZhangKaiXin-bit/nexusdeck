@@ -464,7 +464,7 @@ function confirmRestartApp(app) {
   openConfirm({
     title: '重启应用',
     bodyHtml: '确定要重启 <b>' + escapeHtml(app.name || '') + '</b> 吗？' +
-      '<div class="confirm-detail">总控台会等待旧进程完全退出，然后使用当前配置重新启动。</div>',
+      '<div class="confirm-detail">枢纽台会等待旧进程完全退出，然后使用当前配置重新启动。</div>',
     okText: '重新启动',
     onOk: async () => {
       const r = await act(post('/api/apps/' + app.id + '/restart'));
@@ -533,7 +533,7 @@ function openPortDiagnostic(app) {
       (app.portConflictApps || []).join('、') +
       '”配置。端口同一时间只能由一个服务监听，请修改当前卡片或另一张卡片。';
   } else if (owner && owner.pid === (state.data && state.data.consolePid)) {
-    diagNote.textContent = '该端口属于当前总控台。你可以修改当前卡片端口，不能在这里结束总控台。';
+    diagNote.textContent = '该端口属于当前枢纽台。你可以修改当前卡片端口，不能在这里结束枢纽台。';
   } else if (owner && owner.currentUser) {
     const ownerLabel = owner.project || owner.appName || owner.name || ('PID ' + owner.pid);
     diagNote.textContent = owner.appId
@@ -545,7 +545,7 @@ function openPortDiagnostic(app) {
         '可以认领为本卡片；若要现在启动当前项目，' +
         '请等待它停止、修改当前项目端口，或确认后结束该进程。';
   } else if (owner) {
-    diagNote.textContent = '该进程不属于当前用户。你可以打开它或修改当前卡片端口，总控台不会结束它。';
+    diagNote.textContent = '该进程不属于当前用户。你可以打开它或修改当前卡片端口，枢纽台不会结束它。';
   } else {
     diagNote.textContent = '暂时无法读取占用者详情，可稍后刷新重试。';
   }

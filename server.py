@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""总控台后端（单文件，仅 Python 3 标准库）。
+"""枢纽台后端（单文件，仅 Python 3 标准库）。
 
 本地服务监控 + 快速启动台：
     python3 server.py  →  绑定 127.0.0.1，端口 9600 起（被占 +1，最多 10 个）
@@ -8,7 +8,6 @@ API 契约与实现要点见 AGENTS.md。
 """
 
 import glob
-import fcntl
 import functools
 import errno
 import json
@@ -31,12 +30,34 @@ import webbrowser
 from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+# fcntl 仅在 POSIX（macOS / Linux）可用；Windows 用 msvcrt 替代文件锁。
+if sys.platform.startswith("win"):
+    import msvcrt  # noqa: F401  (Windows 文件锁)
+else:
+    import fcntl  # noqa: F401  (POSIX 文件锁)
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 VERSION_PATH = os.path.join(BASE_DIR, "VERSION")
 LEGACY_DATA_DIR = os.path.join(BASE_DIR, "data")
-DEFAULT_DATA_DIR = os.path.expanduser(
-    "~/Library/Application Support/总控台")
-DEFAULT_LOGS_DIR = os.path.expanduser("~/Library/Logs/总控台")
+
+def _default_data_dir():
+    if sys.platform.startswith("win"):
+        base = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~/AppData/Local")
+        return os.path.join(base, "枢纽台")
+    if sys.platform == "darwin":
+        return os.path.expanduser("~/Library/Application Support/枢纽台")
+    return os.path.expanduser("~/.local/share/枢纽台")
+
+def _default_logs_dir():
+    if sys.platform.startswith("win"):
+        base = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~/AppData/Local")
+        return os.path.join(base, "枢纽台", "Logs")
+    if sys.platform == "darwin":
+        return os.path.expanduser("~/Library/Logs/枢纽台")
+    return os.path.expanduser("~/.local/share/枢纽台/logs")
+
+DEFAULT_DATA_DIR = _default_data_dir()
+DEFAULT_LOGS_DIR = _default_logs_dir()
 
 
 def resolve_runtime_dir(name, default):
@@ -130,7 +151,7 @@ def public_last_exit(app):
         return value
     result = dict(value)
     if (app.get("kind") or "service") == "task":
-        # 旧版把“总控台按钮停止”记作 canceled + null；新协议中它是 stopped。
+        # 旧版把“枢纽台按钮停止”记作 canceled + null；新协议中它是 stopped。
         if result.get("status") == "canceled" and result.get("code") is None:
             result["status"] = "stopped"
         elif (result.get("status") not in
@@ -156,7 +177,7 @@ STATIC_TYPES = {
 }
 
 PLACEHOLDER_HTML = """<!DOCTYPE html>
-<html lang="zh-CN"><head><meta charset="utf-8"><title>总控台</title>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>枢纽台</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
 body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f5f5f7;color:#1d1d1f}
@@ -165,7 +186,7 @@ h1{font-size:20px;margin:0 0 14px}p{color:#6e6e73;font-size:14px;line-height:1.8
 code{background:#f5f5f7;border:1px solid rgba(0,0,0,.05);border-radius:6px;padding:2px 7px;font-family:ui-monospace,Menlo,monospace;font-size:13px}
 </style></head>
 <body><div class="card">
-<h1>🖥 总控台后端运行中</h1>
+<h1>🖥 枢纽台后端运行中</h1>
 <p>前端文件 <code>static/index.html</code> 尚未提供，界面暂不可用。</p>
 <p>API 已就绪：<code>GET /api/state</code></p>
 </div></body></html>"""
@@ -547,7 +568,7 @@ def acquire_instance_lock(path=INSTANCE_LOCK_PATH):
     fd = os.open(path, os.O_RDWR | os.O_CREAT, 0o600)
     lock_file = os.fdopen(fd, "r+", encoding="ascii")
     try:
-        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        _lock_exclusive(lock_file)
     except OSError as e:
         lock_file.close()
         if e.errno in (errno.EACCES, errno.EAGAIN):
@@ -561,17 +582,36 @@ def acquire_instance_lock(path=INSTANCE_LOCK_PATH):
         lock_file.flush()
         os.fsync(lock_file.fileno())
     except OSError:
-        fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+        _unlock(lock_file)
         lock_file.close()
         raise
     return lock_file
+
+
+def _lock_exclusive(lock_file):
+    """跨平台获取排他文件锁（POSIX flock / Windows msvcrt.locking）。"""
+    if sys.platform.startswith("win"):
+        msvcrt.locking(lock_file.fileno(), msvcrt.LK_NBLCK, 1)
+    else:
+        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+
+def _unlock(lock_file):
+    """跨平台释放文件锁。"""
+    if sys.platform.startswith("win"):
+        try:
+            msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+        except OSError:
+            pass
+    else:
+        fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
 
 
 def release_instance_lock(lock_file):
     if lock_file is None:
         return
     try:
-        fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+        _unlock(lock_file)
     finally:
         lock_file.close()
 
@@ -812,7 +852,7 @@ def project_name(cwd):
 
 # ---------------------------------------------------------------- 进程溯源
 # 沿 PPID 链向上识别「是谁启动了这个服务」：AI 编程助手、编辑器、终端、
-# 总控台自身或 launchd。结果只是展示用的尽力判断，不影响任何启停逻辑。
+# 枢纽台自身或 launchd。结果只是展示用的尽力判断，不影响任何启停逻辑。
 
 # 向上爬时要跳过的包装层（按 argv[0] 基名匹配）：壳、包管理器与任务执行器
 _ORIGIN_SKIP_NAMES = {
@@ -892,10 +932,10 @@ def origin_snapshot():
 def attribute_origin(pid, table):
     """沿 PPID 链识别来源应用，返回 {"label", "icon"} 或 None。
 
-    祖先 args 中带有总控台 run-token 前缀（console-run:）即判定为
-    「总控台启动」——本机任一总控台实例的受管进程组都持有该标记。
+    祖先 args 中带有枢纽台 run-token 前缀（console-run:）即判定为
+    「枢纽台启动」——本机任一枢纽台实例的受管进程组都持有该标记。
     未识别的中间层先记为候选并继续上爬；AI 助手 / 编辑器 / 终端 /
-    总控台 / launchd 是更优答案，都没有时才以最近的未识别进程命名。
+    枢纽台 / launchd 是更优答案，都没有时才以最近的未识别进程命名。
     最多上爬 12 层，遇到环或缺失即终止。
     """
     cur, seen, candidate = pid, set(), None
@@ -911,7 +951,7 @@ def attribute_origin(pid, table):
         if ppid <= 1:
             return candidate or {"label": "系统", "icon": "server"}
         if RUN_TOKEN_ARG_PREFIX in parent_args:
-            return {"label": "总控台", "icon": "rocket"}
+            return {"label": "枢纽台", "icon": "rocket"}
         hay = parent_args.casefold()
         for pattern, label in _ORIGIN_AGENT_PATTERNS:
             if pattern.search(hay):
@@ -1424,7 +1464,7 @@ def process_uid(pid):
 def kill_process(pid, force):
     """结束单个进程；只允许当前用户的进程。返回 (ok, error)。"""
     if pid == SELF_PID:
-        return False, "不能结束总控台自身进程"
+        return False, "不能结束枢纽台自身进程"
     uid = process_uid(pid)
     if uid is None:
         return False, "进程不存在"
@@ -1443,15 +1483,32 @@ def kill_process(pid, force):
 
 
 def stop_pid_tree(pid, sig=signal.SIGTERM):
-    """向受控进程组发信号；返回 (ok, error)。
+    """向受控进程树发信号；返回 (ok, error)。
+
+    POSIX：向进程组发信号（killpg）。
+    Windows：用 taskkill 终止整棵进程树（/T），信号参数被忽略。
 
     ProcessLookupError means the target completed between validation and the
     signal and is therefore an idempotent success. Permission and other OS
     failures must never be swallowed: callers use them to retain management
     identity instead of creating an orphan process.
     """
+    pid = int(pid)
+    if sys.platform.startswith("win"):
+        try:
+            r = subprocess.run(
+                ["taskkill", "/PID", str(pid), "/T", "/F"],
+                capture_output=True, text=True, timeout=10)
+            if r.returncode in (0, 128, 255):
+                return True, None
+            # 128/255 多为进程已退出；其他按需报回
+            if "not found" in r.stderr.lower() or "找不到" in r.stderr:
+                return True, None
+            return False, "停止受控进程失败: %s" % (r.stderr.strip() or r.stdout.strip())
+        except Exception as e:  # noqa: BLE001
+            return False, "停止受控进程失败: %s" % e
     try:
-        os.killpg(int(pid), sig)
+        os.killpg(pid, sig)
         return True, None
     except ProcessLookupError:
         return True, None
@@ -1521,16 +1578,25 @@ def start_app(app):
     marker = RUN_TOKEN_ARG_PREFIX + token
     # 外层 shell 在 argv[0] 中持有随机标记并等待内层；内层等待用户命令
     # 留下的后台作业。因此进程组既可验证，也不会因启动脚本过早退出而失去锚点。
-    outer_script = '/bin/bash -c "$1"\nconsole_status=$?\nexit "$console_status"'
     inner_script = (app["command"] +
                     '\nconsole_status=$?\nwait\nexit "$console_status"')
+    is_win = sys.platform.startswith("win")
+    if is_win:
+        outer_script = inner_script
+        shell_cmd = ["cmd.exe", "/c", outer_script]
+        popen_kwargs = dict(
+            cwd=cwd, stdout=logf, stderr=subprocess.STDOUT,
+            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP, env=env)
+    else:
+        outer_script = '/bin/bash -c "$1"\nconsole_status=$?\nexit "$console_status"'
+        shell_cmd = ["/bin/bash", "-c", outer_script, marker, inner_script]
+        popen_kwargs = dict(
+            cwd=cwd, stdout=logf, stderr=subprocess.STDOUT,
+            start_new_session=True, env=env)
     try:
         header = "\n===== 启动于 %s =====\n" % time.strftime("%Y-%m-%d %H:%M:%S")
         logf.write(header.encode("utf-8"))
-        proc = subprocess.Popen(
-            ["/bin/bash", "-c", outer_script, marker, inner_script],
-            cwd=cwd, stdout=logf, stderr=subprocess.STDOUT,
-            start_new_session=True, env=env)
+        proc = subprocess.Popen(shell_cmd, **popen_kwargs)
     except Exception as e:
         logf.close()
         return False, "启动失败: %s" % e, None, None, None
@@ -1634,7 +1700,13 @@ def stop_app_for_update(cfg, app, timeout=5.0):
 
 
 def pick_path(what):
-    """macOS 原生文件/目录选择框（osascript）。返回 (path|None, canceled)。"""
+    """原生文件/目录选择框。
+
+    macOS 用 osascript；Windows / 其他平台无原生对话框，返回 (None, False)
+    交由前端回退到手动路径输入。
+    """
+    if sys.platform != "darwin":
+        return None, False
     if what == "dir":
         script = 'POSIX path of (choose folder with prompt "选择工作目录")'
     else:
@@ -1828,7 +1900,7 @@ def inspect_app_health(app):
         if not runtime_ok:
             add(
                 "runtime-missing", "找不到 %s" % executable_base,
-                "总控台的运行环境里找不到命令：%s" % executable,
+                "枢纽台的运行环境里找不到命令：%s" % executable,
                 "安装对应运行时，或在编辑中修改执行命令。",
                 "edit-command",
             )
@@ -2179,8 +2251,17 @@ def signal_app_stop(target, sig=signal.SIGTERM):
 
 def stop_target_alive(target, expected_uid=None):
     if target["kind"] == "group":
+        ident = target["id"]
+        if sys.platform.startswith("win"):
+            try:
+                os.kill(ident, 0)
+                return True
+            except ProcessLookupError:
+                return False
+            except OSError:
+                return True
         try:
-            os.killpg(target["id"], 0)
+            os.killpg(ident, 0)
             return True
         except ProcessLookupError:
             return False
@@ -2268,7 +2349,7 @@ def inspect_attach_process(cfg, app, pid):
     if app_alive_sign(app):
         return False, "应用已在运行", {"status": 409}
     if pid == os.getpid():
-        return False, "不能认领总控台自身", {"status": 409}
+        return False, "不能认领枢纽台自身", {"status": 409}
     listeners = scan_listeners()
     if (pid, port) not in listeners:
         return False, "PID %d 并未监听端口 %d，进程可能已退出" % (pid, port), {"status": 409}
@@ -2571,7 +2652,7 @@ def diagnose_app(cfg, app):
     if m and "cannot find module" not in log_lower:
         add("runtime-missing", "找不到运行时：%s" % m.group(1),
             "系统里找不到 %s 这个命令。" % m.group(1),
-            "确认该运行时已安装（如 node / python3 / pnpm）；总控台启动时会补常见 PATH，但程序本身需要存在。")
+            "确认该运行时已安装（如 node / python3 / pnpm）；枢纽台启动时会补常见 PATH，但程序本身需要存在。")
 
     if "missing script" in log_lower and has_pkg:
         script_names = []
@@ -2616,7 +2697,7 @@ def diagnose_app(cfg, app):
         elif code == 127:
             add("not-found", "命令不存在（exit 127）",
                 "退出码 127 表示 shell 找不到这个命令。",
-                "确认命令已安装且在 PATH 里；总控台会补常见路径，但程序本身要存在。")
+                "确认命令已安装且在 PATH 里；枢纽台会补常见路径，但程序本身要存在。")
         elif (isinstance(code, int) and code == 0
               and (app.get("kind") or "service") != "task"):
             add("quick-exit", "命令立即正常退出（exit 0）",
@@ -3075,7 +3156,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_json({"text": read_log_tail(app_id, tail)})
 
     def handle_console_log(self, query):
-        """总控台自身日志（data/logs/console.log），与维护线程共用轮转。"""
+        """枢纽台自身日志（data/logs/console.log），与维护线程共用轮转。"""
         tail = self._parse_log_tail(query)
         self.send_json({"text": read_log_tail("console", tail)})
 
@@ -3226,7 +3307,7 @@ class Handler(BaseHTTPRequestHandler):
                                 "port": self.server.console_port,
                                 "alreadyScheduled": True})
             else:
-                self.send_err(409, "总控台正在停止，无法重复重启")
+                self.send_err(409, "枢纽台正在停止，无法重复重启")
             return
         try:
             helper_pid = schedule_console_restart(
@@ -3249,7 +3330,7 @@ class Handler(BaseHTTPRequestHandler):
                                 "port": self.server.console_port,
                                 "alreadyScheduled": True})
             else:
-                self.send_err(409, "总控台正在重启，无法同时停止")
+                self.send_err(409, "枢纽台正在重启，无法同时停止")
             return
         schedule_console_stop(self.server)
         invalidate_state_cache()
@@ -3814,7 +3895,7 @@ def open_browser_later(port, delay=0.8):
 
 
 def find_console_instances():
-    """查找从同一项目目录启动的总控台，用于双击启动器去重。"""
+    """查找从同一项目目录启动的枢纽台，用于双击启动器去重。"""
     snap = ps_snapshot(None, with_uid=True)
     candidates = []
     for pid, info in snap.items():
@@ -3851,7 +3932,7 @@ def find_console_instances():
 def _launcher_dialog(message):
     script = """on run argv
 set messageText to item 1 of argv
-display dialog messageText with title "总控台" buttons {"取消", "重新启动", "打开控制台"} default button "打开控制台" cancel button "取消" with icon note
+display dialog messageText with title "枢纽台" buttons {"取消", "重新启动", "打开控制台"} default button "打开控制台" cancel button "取消" with icon note
 return button returned of result
 end run"""
     try:
@@ -3865,7 +3946,7 @@ end run"""
 
 def _launcher_alert(message):
     script = """on run argv
-display alert "总控台" message (item 1 of argv) as critical
+display alert "枢纽台" message (item 1 of argv) as critical
 end run"""
     try:
         subprocess.run(["osascript", "-e", script, message],
@@ -3881,7 +3962,7 @@ def launcher_main():
         try:
             main(log_to_file=True)
         except Exception:
-            _launcher_alert("总控台启动失败。请检查数据目录权限和 console.log。")
+            _launcher_alert("枢纽台启动失败。请检查数据目录权限和 console.log。")
             raise
         return
     labels = []
@@ -3891,7 +3972,7 @@ def launcher_main():
     extra = ("\n\n检测到 %d 个同项目实例，重启时会合并为一个。" % len(instances)
              if len(instances) > 1 else "")
     choice = _launcher_dialog(
-        "总控台已在运行：\n" + "\n".join(labels) + extra)
+        "枢纽台已在运行：\n" + "\n".join(labels) + extra)
     if choice == "打开控制台":
         ports = [p for item in instances for p in item["ports"]]
         port = min(ports) if ports else PORT_START
@@ -3914,13 +3995,13 @@ def launcher_main():
         time.sleep(0.1)
     survivors = [pid for pid in targets if pid_alive(pid)]
     if survivors:
-        _launcher_alert("旧总控台未能正常退出（PID %s），未强制结束。" %
+        _launcher_alert("旧枢纽台未能正常退出（PID %s），未强制结束。" %
                         "、".join(str(pid) for pid in survivors))
         return
     try:
         main(preferred_port=preferred, log_to_file=True)
     except Exception:
-        _launcher_alert("总控台重启失败。请检查数据目录权限和 console.log。")
+        _launcher_alert("枢纽台重启失败。请检查数据目录权限和 console.log。")
         raise
 
 
@@ -3947,7 +4028,7 @@ def schedule_console_stop(server):
 
 
 def restart_helper(old_pid, preferred_port):
-    """等旧进程释放端口后，在 helper 原地 exec 新总控台。"""
+    """等旧进程释放端口后，在 helper 原地 exec 新枢纽台。"""
     deadline = time.monotonic() + 12.0
     while time.monotonic() < deadline and pid_alive(old_pid):
         time.sleep(0.1)
@@ -3985,7 +4066,7 @@ def _run_console(preferred_port=None, open_browser=True):
               (PORT_START, PORT_START + PORT_TRIES - 1))
         sys.exit(1)
 
-    print("总控台已启动: http://%s:%d/  (Ctrl+C 停止)" % (HOST, port), flush=True)
+    print("枢纽台已启动: http://%s:%d/  (Ctrl+C 停止)" % (HOST, port), flush=True)
     if open_browser:
         open_browser_later(port)
     try:
@@ -4032,7 +4113,7 @@ def main(preferred_port=None, open_browser=True, log_to_file=False):
               flush=True)
     instance_lock = acquire_instance_lock()
     if instance_lock is None:
-        print("总控台已在运行（同一数据目录只允许一个实例）。", flush=True)
+        print("枢纽台已在运行（同一数据目录只允许一个实例）。", flush=True)
         if open_browser:
             instances = find_console_instances()
             ports = [port for item in instances for port in item.get("ports", [])]

@@ -669,7 +669,7 @@ export function openLogs(app) {
   openLogDrawer(app.id, (app.name || '') + ' · 日志');
 }
 export function openConsoleLog() {
-  openLogDrawer('console', '总控台 · 日志');
+  openLogDrawer('console', '枢纽台 · 日志');
 }
 function openLogDrawer(appId, title) {
   closeLogs();

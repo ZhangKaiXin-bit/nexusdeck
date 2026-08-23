@@ -18,7 +18,7 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "static" / "assets" / "console-app-icon.png"
 ASSETS = ROOT / "static" / "assets"
-ICNS = ROOT / "总控台.app" / "Contents" / "Resources" / "AppIcon.icns"
+ICNS = ROOT / "枢纽台.app" / "Contents" / "Resources" / "AppIcon.icns"
 
 ICONSET_SIZES = (
     (16, "icon_16x16.png"),
