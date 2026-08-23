@@ -72,7 +72,7 @@ coll = COLLECT(
 app = BUNDLE(
     coll,
     name=app_name + ".app",
-    icon=None,
+    icon=os.path.join(here, "枢纽台.app", "Contents", "Resources", "AppIcon.icns"),
     bundle_identifier="com.nexusdeck.desktop",
     info_plist={
         "CFBundleDisplayName": "枢纽台",

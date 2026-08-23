@@ -6,7 +6,11 @@
 `Unreleased`；发布时再移动到带版本号和日期的章节。纯缓存清理、
 一次性构建产物和不影响行为的内部整理由 Git 历史记录，不在此逐项罗列。
 
-## [Unreleased]
+## [1.0.1] - 2026-08-23
+
+### Changed
+
+- 应用图标替换为新版「桌面指挥台」方案（深空蓝渐变底座 + 多窗口卡片 + 控制台），同步更新 macOS 应用包 `AppIcon.icns`、网页 favicon、Apple Touch Icon 与品牌导出脚本；仅发布 macOS DMG（Windows 版沿用 v1.0.0）。
 
 ### Added
 
