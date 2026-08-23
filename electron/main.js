@@ -12,16 +12,22 @@ let serverProc = null;
 let mainWindow = null;
 
 // 解析封进包内的 server 可执行路径
+// PyInstaller onedir 产物：bin/nexusdeck-server/nexusdeck-server(.exe)
+// 旧单文件产物：bin/nexusdeck-server(.exe)
 function resolveServerBin() {
-  if (app.isPackaged) {
-    // macOS: NexusDeck.app/Contents/Resources/bin/nexusdeck-server
-    // 其它平台: resources/bin/nexusdeck-server(.exe)
-    const base = process.resourcesPath;
-    const exe = process.platform === "win32" ? "nexusdeck-server.exe" : "nexusdeck-server";
-    return path.join(base, "bin", exe);
-  }
-  // 开发模式：直接调系统 python 跑源码（便于调试）
-  return null;
+  if (!app.isPackaged) return null;
+  const base = process.resourcesPath;
+  const exeName = process.platform === "win32" ? "nexusdeck-server.exe" : "nexusdeck-server";
+
+  // 优先 onedir 目录结构
+  const onedirPath = path.join(base, "bin", "nexusdeck-server", exeName);
+  if (fs.existsSync(onedirPath)) return onedirPath;
+
+  // 兼容旧单文件结构
+  const onefilePath = path.join(base, "bin", exeName);
+  if (fs.existsSync(onefilePath)) return onefilePath;
+
+  return onefilePath; // 返回默认值，让 spawn 时报错信息更明确
 }
 
 // 轮询端口是否就绪
