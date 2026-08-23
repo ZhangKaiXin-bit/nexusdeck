@@ -17,7 +17,7 @@ permissions:
 jobs:
   # ---------------------------------------------------------------- macOS
   build-macos:
-    name: Build macOS .app
+    name: Build macOS .dmg
     runs-on: macos-15
     timeout-minutes: 30
     steps:
@@ -38,16 +38,21 @@ jobs:
           pyinstaller build.spec --noconfirm --clean
           test -d dist/NexusDeck.app && echo "app built"
 
-      - name: Zip macOS artifact
+      - name: Create macOS DMG
         run: |
-          cd dist
-          ditto -c -k --keepParent NexusDeck.app NexusDeck-macos.zip
+          mkdir -p dist/dmg-stage
+          cp -R dist/NexusDeck.app dist/dmg-stage/
+          ln -s /Applications dist/dmg-stage/Applications
+          hdiutil create -volname "NexusDeck" \
+            -srcfolder dist/dmg-stage \
+            -ov -format UDZO dist/NexusDeck-macos.dmg
+          test -f dist/NexusDeck-macos.dmg && echo "dmg built"
 
       - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
         with:
           name: nexusdeck-macos
-          path: dist/NexusDeck-macos.zip
+          path: dist/NexusDeck-macos.dmg
 
   # ---------------------------------------------------------------- Windows
   build-windows:
@@ -107,7 +112,7 @@ jobs:
       - name: Stage assets
         run: |
           mkdir -p release
-          cp artifacts/nexusdeck-macos/NexusDeck-macos.zip release/
+          cp artifacts/nexusdeck-macos/NexusDeck-macos.dmg release/
           cp artifacts/nexusdeck-windows/NexusDeck.exe release/
 
       - name: Create Release
@@ -121,7 +126,7 @@ jobs:
             本地服务指挥台桌面版，零依赖 Python 后端 + 原生前端，跨平台运行。
 
             ### 下载
-            - **macOS**：`NexusDeck-macos.zip` → 解压得到 `NexusDeck.app`（仅回环地址，拖入 Applications 即用）
+            - **macOS**：`NexusDeck-macos.dmg` → 双击挂载，将 `NexusDeck.app` 拖入「应用程序」（仅回环地址）
             - **Windows**：`NexusDeck.exe`（双击运行，数据存于 `%LOCALAPPDATA%\枢纽台`）
 
             ### 说明
